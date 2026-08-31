@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Sora", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #F3EDE1;
+  color: #2B2621;
+}
+
+a {
+  color: #D97757;
+}
+
+a:hover {
+  color: #E8A07D;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8CDB8;
+  border-radius: 4px;
+}
