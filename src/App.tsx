@@ -214,30 +214,27 @@ function App() {
       {view === 'dashboard' && (
         <div className="flex-1 flex flex-col px-10 py-6 gap-6 min-h-0">
           <div className="flex items-start justify-between shrink-0">
-            <div className="flex flex-col gap-2">
-              <div>
-                <div className="text-[13px] tracking-[0.08em] text-[#8A8171] font-semibold uppercase">QA Chapter</div>
-                <div className="text-[34px] font-bold mt-1 text-[#2B2621]">Regression Management</div>
-              </div>
-              
-              {activeCycle && (
-                <div className="flex items-center gap-3 bg-[#F1E9D9] border border-[#E4DACB] rounded-lg px-3 py-2 mt-1">
-                  <div className="w-32 h-2.5 bg-white rounded-full overflow-hidden border border-[#E4DACB]">
-                    <div className="h-full bg-[#1F8F5D] rounded-full transition-all duration-500" style={{ width: `${overallProgress}%` }}></div>
-                  </div>
-                  <div className="text-sm font-bold text-[#2B2621]">
-                    {overallProgress}% <span className="font-medium text-[#6B6255]">Completed</span>
-                  </div>
-                  <div className="w-px h-4 bg-[#E4DACB] mx-1"></div>
-                  <div className="text-sm font-bold text-[#C24A3D]">
-                    {totalBugs} <span className="font-medium text-[#6B6255]">Total Bugs</span>
-                  </div>
-                </div>
-              )}
+            <div>
+              <div className="text-[13px] tracking-[0.08em] text-[#8A8171] font-semibold uppercase">QA Chapter</div>
+              <div className="text-[34px] font-bold mt-1 text-[#2B2621]">Regression Management</div>
             </div>
+            
             <div className="flex gap-3 items-center">
               {activeCycle ? (
                 <>
+                  <div className="flex items-center gap-3 bg-[#F1E9D9] border border-[#E4DACB] rounded-xl px-4 py-2.5">
+                    <div className="w-24 h-2.5 bg-white rounded-full overflow-hidden border border-[#E4DACB]">
+                      <div className="h-full bg-[#1F8F5D] rounded-full transition-all duration-500" style={{ width: `${overallProgress}%` }}></div>
+                    </div>
+                    <div className="text-sm font-bold text-[#2B2621]">
+                      {overallProgress}%
+                    </div>
+                    <div className="w-px h-4 bg-[#E4DACB] mx-1"></div>
+                    <div className="text-sm font-bold text-[#C24A3D]">
+                      {totalBugs} <span className="font-medium text-[#6B6255]">Bugs</span>
+                    </div>
+                  </div>
+
                   <div className="bg-white border border-[#E4DACB] rounded-xl px-4 py-2.5 text-sm font-medium text-[#6B6255]">
                     {dateRangeLabel}
                   </div>
@@ -263,7 +260,7 @@ function App() {
             {members.map(m => {
               const ringColor = m.progress >= 75 ? '#1F8F5D' : m.progress >= 45 ? '#D97757' : '#C23B32';
               const doneCount = m.checklist.filter(c => c.status === 'Done').length;
-              const lastActiveText = m.lastActive ? `Active ${formatDistanceToNow(m.lastActive, { addSuffix: true })}` : 'No recent activity';
+              const lastActiveText = m.lastActive ? `Active ${formatDistanceToNow(m.lastActive, { addSuffix: true })}` : 'No activity';
 
               return (
                 <div 
@@ -272,13 +269,9 @@ function App() {
                     setSelectedMemberId(m.id);
                     setView('detail');
                   }}
-                  className={`cursor-pointer bg-white border border-[#E4DACB] rounded-[18px] px-6 py-5 flex flex-col gap-3.5 transition-colors hover:border-[#D97757] relative ${m.progress === 100 ? 'opacity-70' : ''}`}
+                  className={`cursor-pointer bg-white border border-[#E4DACB] rounded-[18px] px-6 py-5 flex flex-col gap-3.5 transition-colors hover:border-[#D97757] ${m.progress === 100 ? 'opacity-70' : ''}`}
                 >
-                  <div className="absolute top-4 right-5 text-[11px] font-semibold text-[#8A8171]">
-                    {lastActiveText}
-                  </div>
-                  
-                  <div className="flex items-center gap-4 shrink-0 mt-1">
+                  <div className="flex items-center gap-4 shrink-0">
                     <div 
                       className="relative w-[78px] h-[78px] shrink-0 rounded-full flex items-center justify-center"
                       style={{ background: "conic-gradient(" + ringColor + " " + m.progress + "%, #E8E0D0 0)" }}
@@ -296,6 +289,8 @@ function App() {
                       </div>
                       <span className="text-[15px] text-[#9C9280] whitespace-nowrap">
                         Tasks: <span className="text-[#2B2621] font-bold">{doneCount}/{m.checklist.length}</span>
+                        <span className="mx-2 text-[#E4DACB]">&bull;</span>
+                        <span className="text-[13px]">{lastActiveText}</span>
                       </span>
                     </div>
 
