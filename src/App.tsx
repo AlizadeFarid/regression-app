@@ -162,7 +162,7 @@ function App() {
 
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const ADMIN_PIN = '7777';
+    const ADMIN_PIN = 'RegAdmin2026!';
 
     if (pinInput === ADMIN_PIN) {
       setShowPinModal(false);
