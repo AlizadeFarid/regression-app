@@ -102,6 +102,31 @@ function App() {
     fetchData();
   };
 
+  const [isAddingBug, setIsAddingBug] = useState(false);
+  const [newBugTitle, setNewBugTitle] = useState('');
+  const [newBugJira, setNewBugJira] = useState('');
+
+  const handleAddBug = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBugTitle.trim() || !selectedMemberId || !activeCycle) return;
+
+    const newBug = {
+      cycle_id: activeCycle.id,
+      member_id: selectedMemberId,
+      title: newBugTitle.trim(),
+      jira_key: newBugJira.trim() || null,
+      status: 'Open'
+    };
+
+    await supabase.from('cycle_bugs').insert([newBug]);
+    setNewBugTitle('');
+    setNewBugJira('');
+    setIsAddingBug(false);
+    fetchData();
+  };
+
+
+
   const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
     const newStatus: TaskStatus = currentStatus === 'Done' ? 'Not Started' : 'Done';
     
@@ -332,8 +357,39 @@ function App() {
                     </span>
                   </div>
                 ))}
-                {selectedMember.bugs.length === 0 && (
+                {selectedMember.bugs.length === 0 && !isAddingBug && (
                   <span className="text-sm text-[#8A8171] italic py-2">No bugs reported yet.</span>
+                )}
+                
+                {isAddingBug ? (
+                  <form onSubmit={handleAddBug} className="mt-1 flex flex-col gap-2 shrink-0 bg-[#F9F6F0] p-3 rounded-lg border border-[#E4DACB]">
+                    <input 
+                      autoFocus
+                      type="text" 
+                      placeholder="Bug description..." 
+                      className="bg-white border border-[#E4DACB] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#D97757]"
+                      value={newBugTitle}
+                      onChange={(e) => setNewBugTitle(e.target.value)}
+                    />
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Jira link (optional)" 
+                        className="flex-1 bg-white border border-[#E4DACB] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#D97757]"
+                        value={newBugJira}
+                        onChange={(e) => setNewBugJira(e.target.value)}
+                      />
+                      <button type="button" onClick={() => setIsAddingBug(false)} className="text-[#8A8171] text-sm px-2 hover:text-[#2B2621]">Cancel</button>
+                      <button type="submit" className="bg-[#D97757] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#E8A07D]">Add</button>
+                    </div>
+                  </form>
+                ) : (
+                  <button 
+                    onClick={() => setIsAddingBug(true)}
+                    className="mt-1 flex items-center justify-center gap-2 border border-dashed border-[#E4DACB] rounded-lg px-3.5 py-2.5 text-[#D97757] font-semibold text-sm hover:bg-[#FBEEE6] hover:border-[#D97757] transition-colors shrink-0"
+                  >
+                    + Add new bug
+                  </button>
                 )}
               </div>
             </div>
