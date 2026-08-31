@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { QAMember, RegressionCycle, CycleTask, CycleBug, TaskStatus } from './types';
 import { supabase } from './lib/supabase';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
 
 const getStatusColors = (status: string) => {
   if (status === 'Done' || status === 'Fixed') return { bg: '#E1F0E6', text: '#1F8F5D' };
@@ -62,6 +62,17 @@ function App() {
         const doneCount = memberTasks.filter(t => t.status === 'Done').length;
         const progress = memberTasks.length > 0 ? Math.round((doneCount / memberTasks.length) * 100) : 0;
 
+        // Find last active date
+        let lastActive: Date | undefined = undefined;
+        const allDates = [
+          ...memberTasks.map(t => t.updated_at ? new Date(t.updated_at) : null),
+          ...memberBugs.map(b => b.created_at ? new Date(b.created_at) : null)
+        ].filter(Boolean) as Date[];
+        
+        if (allDates.length > 0) {
+          lastActive = new Date(Math.max(...allDates.map(d => d.getTime())));
+        }
+
         return {
           id: m.id,
           name: m.name,
@@ -71,7 +82,15 @@ function App() {
           checklist: memberTasks,
           bugs: memberBugs,
           progress,
+          lastActive
         };
+      });
+
+      // Smart Sorting: 100% at the bottom, otherwise lower progress first
+      mappedMembers.sort((a, b) => {
+        if (a.progress === 100 && b.progress !== 100) return 1;
+        if (b.progress === 100 && a.progress !== 100) return -1;
+        return a.progress - b.progress;
       });
 
       setMembers(mappedMembers);
@@ -177,14 +196,44 @@ function App() {
   const daysLeftDot = urgent ? '#C23B32' : '#D97757';
   const daysLeftText = urgent ? '#C23B32' : '#2B2621';
 
+  // Calculate Overall Progress
+  let totalTasks = 0;
+  let totalDone = 0;
+  let totalBugs = 0;
+
+  members.forEach(m => {
+    totalTasks += m.checklist.length;
+    totalDone += m.checklist.filter(t => t.status === 'Done').length;
+    totalBugs += m.bugs.length;
+  });
+
+  const overallProgress = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0;
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' }}>
       {view === 'dashboard' && (
         <div className="flex-1 flex flex-col px-10 py-6 gap-6 min-h-0">
           <div className="flex items-start justify-between shrink-0">
-            <div>
-              <div className="text-[13px] tracking-[0.08em] text-[#8A8171] font-semibold uppercase">QA Chapter</div>
-              <div className="text-[34px] font-bold mt-1 text-[#2B2621]">Regression Management</div>
+            <div className="flex flex-col gap-2">
+              <div>
+                <div className="text-[13px] tracking-[0.08em] text-[#8A8171] font-semibold uppercase">QA Chapter</div>
+                <div className="text-[34px] font-bold mt-1 text-[#2B2621]">Regression Management</div>
+              </div>
+              
+              {activeCycle && (
+                <div className="flex items-center gap-3 bg-[#F1E9D9] border border-[#E4DACB] rounded-lg px-3 py-2 mt-1">
+                  <div className="w-32 h-2.5 bg-white rounded-full overflow-hidden border border-[#E4DACB]">
+                    <div className="h-full bg-[#1F8F5D] rounded-full transition-all duration-500" style={{ width: `${overallProgress}%` }}></div>
+                  </div>
+                  <div className="text-sm font-bold text-[#2B2621]">
+                    {overallProgress}% <span className="font-medium text-[#6B6255]">Completed</span>
+                  </div>
+                  <div className="w-px h-4 bg-[#E4DACB] mx-1"></div>
+                  <div className="text-sm font-bold text-[#C24A3D]">
+                    {totalBugs} <span className="font-medium text-[#6B6255]">Total Bugs</span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-3 items-center">
               {activeCycle ? (
@@ -214,6 +263,7 @@ function App() {
             {members.map(m => {
               const ringColor = m.progress >= 75 ? '#1F8F5D' : m.progress >= 45 ? '#D97757' : '#C23B32';
               const doneCount = m.checklist.filter(c => c.status === 'Done').length;
+              const lastActiveText = m.lastActive ? `Active ${formatDistanceToNow(m.lastActive, { addSuffix: true })}` : 'No recent activity';
 
               return (
                 <div 
@@ -222,9 +272,13 @@ function App() {
                     setSelectedMemberId(m.id);
                     setView('detail');
                   }}
-                  className="cursor-pointer bg-white border border-[#E4DACB] rounded-[18px] px-6 py-5 flex flex-col gap-3.5 transition-colors hover:border-[#D97757]"
+                  className={`cursor-pointer bg-white border border-[#E4DACB] rounded-[18px] px-6 py-5 flex flex-col gap-3.5 transition-colors hover:border-[#D97757] relative ${m.progress === 100 ? 'opacity-70' : ''}`}
                 >
-                  <div className="flex items-center gap-4 shrink-0">
+                  <div className="absolute top-4 right-5 text-[11px] font-semibold text-[#8A8171]">
+                    {lastActiveText}
+                  </div>
+                  
+                  <div className="flex items-center gap-4 shrink-0 mt-1">
                     <div 
                       className="relative w-[78px] h-[78px] shrink-0 rounded-full flex items-center justify-center"
                       style={{ background: "conic-gradient(" + ringColor + " " + m.progress + "%, #E8E0D0 0)" }}

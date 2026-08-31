@@ -11,6 +11,7 @@ export interface QAMember {
   checklist: CycleTask[];
   bugs: CycleBug[];
   progress: number;
+  lastActive?: Date;
 }
 
 export interface CycleTask {
@@ -19,6 +20,7 @@ export interface CycleTask {
   member_id: string;
   task_name: string;
   status: TaskStatus;
+  updated_at?: string;
 }
 
 export interface CycleBug {
@@ -28,6 +30,7 @@ export interface CycleBug {
   title: string;
   jira_key: string | null;
   status: BugStatus;
+  created_at?: string;
 }
 
 export interface RegressionCycle {
