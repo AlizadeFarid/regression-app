@@ -18,7 +18,6 @@ function App() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [isCreatingCycle, setIsCreatingCycle] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -128,114 +127,6 @@ function App() {
     await supabase.from('cycle_tasks').update({ status: newStatus }).eq('id', taskId);
   };
 
-  const [showNewCycleModal, setShowNewCycleModal] = useState(false);
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pinInput, setPinInput] = useState('');
-  const [pinAttempts, setPinAttempts] = useState(0);
-
-  const [newCycleStartDate, setNewCycleStartDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [newCycleEndDate, setNewCycleEndDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 10);
-    return d.toISOString().split('T')[0];
-  });
-
-  const [isLockedOut, setIsLockedOut] = useState(() => {
-    const lockout = localStorage.getItem('lockoutUntil');
-    if (lockout && Date.now() < parseInt(lockout, 10)) {
-      return true;
-    }
-    return false;
-  });
-
-  // Check lockout status periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const lockout = localStorage.getItem('lockoutUntil');
-      if (lockout && Date.now() > parseInt(lockout, 10)) {
-        setIsLockedOut(false);
-        localStorage.removeItem('lockoutUntil');
-      }
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const ADMIN_PIN = 'RegAdmin2026!';
-
-    if (pinInput === ADMIN_PIN) {
-      setShowPinModal(false);
-      setPinInput('');
-      setPinAttempts(0);
-      setShowNewCycleModal(true);
-    } else {
-      const newAttempts = pinAttempts + 1;
-      setPinAttempts(newAttempts);
-      setPinInput('');
-      
-      if (newAttempts >= 3) {
-        // Lock for 1 hour
-        const unlockTime = Date.now() + 60 * 60 * 1000;
-        localStorage.setItem('lockoutUntil', unlockTime.toString());
-        setIsLockedOut(true);
-        setShowPinModal(false);
-        setPinAttempts(0);
-      } else {
-        alert(`Yanlış şifrə! Sizin qaldı: ${3 - newAttempts} cəhdiniz.`);
-      }
-    }
-  };
-
-  const submitNewCycle = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCreatingCycle(true);
-    
-    if (activeCycle) {
-      await supabase.from('regression_cycles').update({ is_active: false }).eq('id', activeCycle.id);
-    }
-
-    const { data: newCycleData, error: cycleError } = await supabase
-      .from('regression_cycles')
-      .insert([{
-        start_date: newCycleStartDate,
-        end_date: newCycleEndDate,
-        is_active: true
-      }])
-      .select()
-      .single();
-
-    if (cycleError || !newCycleData) {
-      setIsCreatingCycle(false);
-      return;
-    }
-
-    const { data: qas } = await supabase.from('qa_members').select('id');
-    const { data: templates } = await supabase.from('checklist_templates').select('task_name');
-
-    if (qas && templates) {
-      const tasksToInsert: any[] = [];
-      qas.forEach((qa: any) => {
-        templates.forEach((template: any) => {
-          tasksToInsert.push({
-            cycle_id: newCycleData.id,
-            member_id: qa.id,
-            task_name: template.task_name,
-            status: 'Not Started'
-          });
-        });
-      });
-
-      if (tasksToInsert.length > 0) {
-        await supabase.from('cycle_tasks').insert(tasksToInsert);
-      }
-    }
-
-    await fetchData();
-    setIsCreatingCycle(false);
-    setShowNewCycleModal(false);
-  };
-
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -285,26 +176,11 @@ function App() {
                       {daysLeft} days left
                     </span>
                   </div>
-                  {!isLockedOut && (
-                    <button 
-                      onClick={() => setShowPinModal(true)}
-                      disabled={isCreatingCycle}
-                      className="bg-[#D97757] text-white rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
-                    >
-                      New Cycle
-                    </button>
-                  )}
                 </>
               ) : (
-                !isLockedOut && (
-                  <button 
-                    onClick={() => setShowPinModal(true)}
-                    disabled={isCreatingCycle}
-                    className="bg-[#D97757] text-white rounded-xl px-6 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
-                  >
-                    Start First Regression
-                  </button>
-                )
+                <div className="bg-[#FBE3DF] border border-[#F2B8AE] text-[#C23B32] rounded-xl px-6 py-2.5 text-sm font-bold">
+                  Gözləmədə...
+                </div>
               )}
             </div>
           </div>
@@ -462,89 +338,6 @@ function App() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-      {showPinModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <form onSubmit={handlePinSubmit} className="bg-white rounded-[20px] p-8 max-w-sm w-full shadow-2xl flex flex-col gap-6">
-            <h2 className="text-2xl font-bold text-[#2B2621]">Admin PIN</h2>
-            
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-[#6B6255]">Zəhmət olmasa təsdiq kodunu yazın</label>
-              <input 
-                autoFocus
-                type="password" 
-                required
-                value={pinInput}
-                onChange={e => setPinInput(e.target.value)}
-                className="bg-[#F3EDE1] border border-[#E4DACB] rounded-lg px-4 py-2.5 text-[#2B2621] outline-none focus:border-[#D97757]" 
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 mt-2">
-              <button 
-                type="button" 
-                onClick={() => setShowPinModal(false)}
-                className="px-5 py-2.5 rounded-xl font-bold text-[#6B6255] hover:bg-[#F3EDE1] transition-colors"
-              >
-                Ləğv
-              </button>
-              <button 
-                type="submit"
-                className="bg-[#D97757] text-white rounded-xl px-6 py-2.5 font-bold hover:bg-[#E8A07D] transition-colors"
-              >
-                Davam
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {showNewCycleModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <form onSubmit={submitNewCycle} className="bg-white rounded-[20px] p-8 max-w-md w-full shadow-2xl flex flex-col gap-6">
-            <h2 className="text-2xl font-bold text-[#2B2621]">New Regression Cycle</h2>
-            
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-[#6B6255]">Start Date</label>
-                <input 
-                  type="date" 
-                  required
-                  value={newCycleStartDate}
-                  onChange={e => setNewCycleStartDate(e.target.value)}
-                  className="bg-[#F3EDE1] border border-[#E4DACB] rounded-lg px-4 py-2.5 text-[#2B2621] outline-none focus:border-[#D97757]" 
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-[#6B6255]">End Date</label>
-                <input 
-                  type="date" 
-                  required
-                  value={newCycleEndDate}
-                  onChange={e => setNewCycleEndDate(e.target.value)}
-                  className="bg-[#F3EDE1] border border-[#E4DACB] rounded-lg px-4 py-2.5 text-[#2B2621] outline-none focus:border-[#D97757]" 
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-2">
-              <button 
-                type="button" 
-                onClick={() => setShowNewCycleModal(false)}
-                className="px-5 py-2.5 rounded-xl font-bold text-[#6B6255] hover:bg-[#F3EDE1] transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                disabled={isCreatingCycle}
-                className="bg-[#D97757] text-white rounded-xl px-6 py-2.5 font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
-              >
-                {isCreatingCycle ? 'Starting...' : 'Start Cycle'}
-              </button>
-            </div>
-          </form>
         </div>
       )}
     </div>
