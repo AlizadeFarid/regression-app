@@ -136,6 +136,27 @@ function App() {
     return d.toISOString().split('T')[0];
   });
 
+  const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem('isAdmin') === 'true');
+  const [clickCount, setClickCount] = useState(0);
+
+  const handleAdminAccess = () => {
+    if (isAdmin) return;
+    const newCount = clickCount + 1;
+    setClickCount(newCount);
+    
+    if (newCount >= 3) {
+      const pin = prompt('Admin PIN kodunu daxil edin:');
+      // Admin PIN-i bura yazırıq. Məsələn: "7777"
+      if (pin === '7777') {
+        sessionStorage.setItem('isAdmin', 'true');
+        setIsAdmin(true);
+      } else if (pin !== null) {
+        alert('Yanlış PIN kod!');
+      }
+      setClickCount(0);
+    }
+  };
+
   const submitNewCycle = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreatingCycle(true);
@@ -218,7 +239,7 @@ function App() {
       {view === 'dashboard' && (
         <div className="flex-1 flex flex-col px-10 py-6 gap-6 min-h-0">
           <div className="flex items-start justify-between shrink-0">
-            <div>
+            <div onClick={handleAdminAccess} className="cursor-default select-none">
               <div className="text-[13px] tracking-[0.08em] text-[#8A8171] font-semibold uppercase">QA Chapter</div>
               <div className="text-[34px] font-bold mt-1 text-[#2B2621]">Regression Management</div>
             </div>
@@ -237,22 +258,26 @@ function App() {
                       {daysLeft} days left
                     </span>
                   </div>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => setShowNewCycleModal(true)}
+                      disabled={isCreatingCycle}
+                      className="bg-[#D97757] text-white rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
+                    >
+                      New Cycle
+                    </button>
+                  )}
+                </>
+              ) : (
+                isAdmin && (
                   <button 
                     onClick={() => setShowNewCycleModal(true)}
                     disabled={isCreatingCycle}
-                    className="bg-[#D97757] text-white rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
+                    className="bg-[#D97757] text-white rounded-xl px-6 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
                   >
-                    New Cycle
+                    Start First Regression
                   </button>
-                </>
-              ) : (
-                <button 
-                  onClick={() => setShowNewCycleModal(true)}
-                  disabled={isCreatingCycle}
-                  className="bg-[#D97757] text-white rounded-xl px-6 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
-                >
-                  Start First Regression
-                </button>
+                )
               )}
             </div>
           </div>
