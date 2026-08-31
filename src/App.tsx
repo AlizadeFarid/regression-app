@@ -129,6 +129,10 @@ function App() {
   };
 
   const [showNewCycleModal, setShowNewCycleModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinAttempts, setPinAttempts] = useState(0);
+
   const [newCycleStartDate, setNewCycleStartDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [newCycleEndDate, setNewCycleEndDate] = useState(() => {
     const d = new Date();
@@ -136,24 +140,50 @@ function App() {
     return d.toISOString().split('T')[0];
   });
 
-  const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem('isAdmin') === 'true');
-  const [clickCount, setClickCount] = useState(0);
+  const [isLockedOut, setIsLockedOut] = useState(() => {
+    const lockout = localStorage.getItem('lockoutUntil');
+    if (lockout && Date.now() < parseInt(lockout, 10)) {
+      return true;
+    }
+    return false;
+  });
 
-  const handleAdminAccess = () => {
-    if (isAdmin) return;
-    const newCount = clickCount + 1;
-    setClickCount(newCount);
-    
-    if (newCount >= 3) {
-      const pin = prompt('Admin PIN kodunu daxil edin:');
-      // Admin PIN-i bura yazırıq. Məsələn: "7777"
-      if (pin === '7777') {
-        sessionStorage.setItem('isAdmin', 'true');
-        setIsAdmin(true);
-      } else if (pin !== null) {
-        alert('Yanlış PIN kod!');
+  // Check lockout status periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const lockout = localStorage.getItem('lockoutUntil');
+      if (lockout && Date.now() > parseInt(lockout, 10)) {
+        setIsLockedOut(false);
+        localStorage.removeItem('lockoutUntil');
       }
-      setClickCount(0);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ADMIN_PIN = '7777';
+
+    if (pinInput === ADMIN_PIN) {
+      setShowPinModal(false);
+      setPinInput('');
+      setPinAttempts(0);
+      setShowNewCycleModal(true);
+    } else {
+      const newAttempts = pinAttempts + 1;
+      setPinAttempts(newAttempts);
+      setPinInput('');
+      
+      if (newAttempts >= 3) {
+        // Lock for 1 hour
+        const unlockTime = Date.now() + 60 * 60 * 1000;
+        localStorage.setItem('lockoutUntil', unlockTime.toString());
+        setIsLockedOut(true);
+        setShowPinModal(false);
+        setPinAttempts(0);
+      } else {
+        alert(`Yanlış şifrə! Sizin qaldı: ${3 - newAttempts} cəhdiniz.`);
+      }
     }
   };
 
@@ -161,7 +191,6 @@ function App() {
     e.preventDefault();
     setIsCreatingCycle(true);
     
-    // Close existing cycle
     if (activeCycle) {
       await supabase.from('regression_cycles').update({ is_active: false }).eq('id', activeCycle.id);
     }
@@ -181,7 +210,6 @@ function App() {
       return;
     }
 
-    // Get members & templates
     const { data: qas } = await supabase.from('qa_members').select('id');
     const { data: templates } = await supabase.from('checklist_templates').select('task_name');
 
@@ -214,7 +242,6 @@ function App() {
 
   const selectedMember = selectedMemberId ? members.find(m => m.id === selectedMemberId) : null;
 
-  // Calculate dates
   let dateRangeLabel = 'No active cycle';
   let daysLeft = 0;
   
@@ -239,7 +266,7 @@ function App() {
       {view === 'dashboard' && (
         <div className="flex-1 flex flex-col px-10 py-6 gap-6 min-h-0">
           <div className="flex items-start justify-between shrink-0">
-            <div onClick={handleAdminAccess} className="cursor-default select-none">
+            <div>
               <div className="text-[13px] tracking-[0.08em] text-[#8A8171] font-semibold uppercase">QA Chapter</div>
               <div className="text-[34px] font-bold mt-1 text-[#2B2621]">Regression Management</div>
             </div>
@@ -258,9 +285,9 @@ function App() {
                       {daysLeft} days left
                     </span>
                   </div>
-                  {isAdmin && (
+                  {!isLockedOut && (
                     <button 
-                      onClick={() => setShowNewCycleModal(true)}
+                      onClick={() => setShowPinModal(true)}
                       disabled={isCreatingCycle}
                       className="bg-[#D97757] text-white rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
                     >
@@ -269,9 +296,9 @@ function App() {
                   )}
                 </>
               ) : (
-                isAdmin && (
+                !isLockedOut && (
                   <button 
-                    onClick={() => setShowNewCycleModal(true)}
+                    onClick={() => setShowPinModal(true)}
                     disabled={isCreatingCycle}
                     className="bg-[#D97757] text-white rounded-xl px-6 py-2.5 text-sm font-bold hover:bg-[#E8A07D] transition-colors disabled:opacity-50"
                   >
@@ -437,6 +464,42 @@ function App() {
           </div>
         </div>
       )}
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <form onSubmit={handlePinSubmit} className="bg-white rounded-[20px] p-8 max-w-sm w-full shadow-2xl flex flex-col gap-6">
+            <h2 className="text-2xl font-bold text-[#2B2621]">Admin PIN</h2>
+            
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[#6B6255]">Zəhmət olmasa təsdiq kodunu yazın</label>
+              <input 
+                autoFocus
+                type="password" 
+                required
+                value={pinInput}
+                onChange={e => setPinInput(e.target.value)}
+                className="bg-[#F3EDE1] border border-[#E4DACB] rounded-lg px-4 py-2.5 text-[#2B2621] outline-none focus:border-[#D97757]" 
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 mt-2">
+              <button 
+                type="button" 
+                onClick={() => setShowPinModal(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-[#6B6255] hover:bg-[#F3EDE1] transition-colors"
+              >
+                Ləğv
+              </button>
+              <button 
+                type="submit"
+                className="bg-[#D97757] text-white rounded-xl px-6 py-2.5 font-bold hover:bg-[#E8A07D] transition-colors"
+              >
+                Davam
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {showNewCycleModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <form onSubmit={submitNewCycle} className="bg-white rounded-[20px] p-8 max-w-md w-full shadow-2xl flex flex-col gap-6">
