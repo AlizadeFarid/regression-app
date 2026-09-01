@@ -138,11 +138,23 @@ function App() {
         };
       });
 
-      // Smart Sorting: 100% at the bottom, otherwise lower progress first
+      // Fixed Sorting Order as requested by user
+      const fixedOrder = [
+        'Fərid Əlizadə',
+        'Samir Osmanlı',
+        'Rahilə Hafizova',
+        'Nərgiz Vəliyeva'
+      ];
+
       mappedMembers.sort((a, b) => {
-        if (a.progress === 100 && b.progress !== 100) return 1;
-        if (b.progress === 100 && a.progress !== 100) return -1;
-        return a.progress - b.progress;
+        const indexA = fixedOrder.indexOf(a.name);
+        const indexB = fixedOrder.indexOf(b.name);
+        
+        // If someone is not in the array (fallback), put them at the end
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        
+        return indexA - indexB;
       });
 
       setMembers(mappedMembers);
