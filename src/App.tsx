@@ -71,6 +71,35 @@ function App() {
     setLoading(false);
   };
 
+  const handleSendReminder = async () => {
+    if (!activeCycle) return;
+    
+    // Calculate exact days left
+    const eDate = new Date(activeCycle.end_date);
+    const today = new Date();
+    // Reset time for accurate day difference
+    today.setHours(0, 0, 0, 0);
+    eDate.setHours(0, 0, 0, 0);
+    
+    // Math.round to avoid timezone decimal issues
+    const diffTime = eDate.getTime() - today.getTime();
+    const exactDaysLeft = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    let confirmMsg = `Slack-ə "${exactDaysLeft} gün qalıb" kimi xatırlatma mesajı göndərmək istədiyinizə əminsiniz?`;
+    if (exactDaysLeft === 0) confirmMsg = "Slack-ə 'Bugün son gündür' xatırlatması göndərmək istədiyinizə əminsiniz?";
+    if (exactDaysLeft < 0) confirmMsg = `Slack-ə "Vaxt ${Math.abs(exactDaysLeft)} gün keçib" xatırlatması göndərmək istədiyinizə əminsiniz?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await supabase.rpc('send_slack_reminder', { days_left: exactDaysLeft });
+      alert("Xatırlatma mesajı Slack-ə göndərildi! 🚀");
+    } catch (err) {
+      console.error('Error sending reminder:', err);
+      alert("Mesaj göndərilərkən xəta baş verdi.");
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -310,12 +339,20 @@ function App() {
             
             <div className="flex gap-3 items-center">
               {isAdmin && (
-                <button 
-                  onClick={() => setShowNewCycleModal(true)}
-                  className="bg-[#D97757] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#E8A07D] transition-colors shadow-sm"
-                >
-                  + New Cycle
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={handleSendReminder}
+                    className="bg-white border border-[#E4DACB] text-[#D97757] text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#FBEEE6] transition-colors shadow-sm"
+                  >
+                    🔔 Remind
+                  </button>
+                  <button 
+                    onClick={() => setShowNewCycleModal(true)}
+                    className="bg-[#D97757] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#E8A07D] transition-colors shadow-sm"
+                  >
+                    + New Cycle
+                  </button>
+                </div>
               )}
               {activeCycle ? (
                 <>
