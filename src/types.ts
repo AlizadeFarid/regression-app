@@ -37,5 +37,7 @@ export interface RegressionCycle {
   id: string;
   start_date: string;
   end_date: string;
+  release_version?: string;
   is_active: boolean;
+  created_at?: string;
 }

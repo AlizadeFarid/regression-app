@@ -28,6 +28,7 @@ function App() {
   const [showNewCycleModal, setShowNewCycleModal] = useState(false);
   const [newCycleStart, setNewCycleStart] = useState('');
   const [newCycleEnd, setNewCycleEnd] = useState('');
+  const [newCycleVersion, setNewCycleVersion] = useState('');
 
   useEffect(() => {
     // Check URL for secret token
@@ -55,12 +56,14 @@ function App() {
       await supabase.from('regression_cycles').insert({
         start_date: newCycleStart,
         end_date: newCycleEnd,
+        release_version: newCycleVersion || null,
         is_active: true
       });
       
       setShowNewCycleModal(false);
       setNewCycleStart('');
       setNewCycleEnd('');
+      setNewCycleVersion('');
       await fetchData();
     } catch (err) {
       console.error('Error starting new cycle:', err);
@@ -312,8 +315,8 @@ function App() {
                       {overallProgress}%
                     </div>
                     <div className="w-px h-4 bg-[#E4DACB] mx-1"></div>
-                    <div className="text-sm font-bold text-[#C24A3D]">
-                      {totalBugs} <span className="font-medium text-[#6B6255]">Bugs</span>
+                    <div className="text-sm font-bold text-[#6B6255]">
+                      Release - {activeCycle.release_version || 'N/A'}
                     </div>
                   </div>
 
@@ -596,6 +599,17 @@ function App() {
                   className="bg-white border border-[#E4DACB] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#D97757] text-[#2B2621]"
                   value={newCycleEnd}
                   onChange={(e) => setNewCycleEnd(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-bold text-[#4A3F35] uppercase tracking-wide">Release Version</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. 10.9.0"
+                  className="bg-white border border-[#E4DACB] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#D97757] text-[#2B2621]"
+                  value={newCycleVersion}
+                  onChange={(e) => setNewCycleVersion(e.target.value)}
                 />
               </div>
 
