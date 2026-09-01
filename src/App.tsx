@@ -420,14 +420,7 @@ function App() {
               &larr;
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <div className="text-xl font-bold text-[#2B2621]">{selectedMember.name}</div>
-                {selectedMember.team_name && (
-                  <div className="text-[13px] font-bold text-[#D97757] bg-[#FBEEE6] px-3 py-1 rounded-full border border-[#F3E3DB]">
-                    {selectedMember.team_name}
-                  </div>
-                )}
-              </div>
+              <div className="text-xl font-bold text-[#2B2621]">{selectedMember.name}</div>
               <div className="text-[13px] text-[#8A8171] mt-1">
                 {selectedMember.progress}% completed &middot; {selectedMember.bugs.length} bugs found
               </div>
@@ -436,7 +429,14 @@ function App() {
 
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-5 min-h-0 overflow-hidden pb-4">
             <div className="bg-white border border-[#E4DACB] rounded-2xl p-5 flex flex-col min-h-0">
-              <div className="text-sm font-bold text-[#2B2621] mb-3.5">Checklist</div>
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#E4DACB]/50 shrink-0">
+                <div className="text-sm font-bold text-[#2B2621]">Checklist</div>
+                {selectedMember.team_name && (
+                  <div className="text-[12px] font-bold text-[#D97757] bg-[#FBEEE6] px-3 py-1.5 rounded-full border border-[#F3E3DB]">
+                    {selectedMember.team_name}
+                  </div>
+                )}
+              </div>
               <div className="overflow-y-auto flex flex-col gap-2 pr-1 custom-scrollbar pb-2">
                 {selectedMember.checklist.map(c => (
                   <div key={c.id} className="group flex items-center justify-between gap-3 bg-[#F1E9D9] border border-[#E4DACB] rounded-lg px-3.5 py-2.5 shrink-0 hover:bg-[#EAE0CB] transition-colors">
