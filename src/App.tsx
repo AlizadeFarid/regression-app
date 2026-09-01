@@ -29,7 +29,11 @@ function App() {
   const [newCycleStart, setNewCycleStart] = useState('');
   const [newCycleEnd, setNewCycleEnd] = useState('');
   const [newCycleVersion, setNewCycleVersion] = useState('');
-
+  
+  // Reminder Modal states
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderDaysLeft, setReminderDaysLeft] = useState(0);
+  const [reminderMessage, setReminderMessage] = useState('');
   useEffect(() => {
     // Check URL for secret token
     const urlParams = new URLSearchParams(window.location.search);
@@ -71,33 +75,38 @@ function App() {
     setLoading(false);
   };
 
-  const handleSendReminder = async () => {
+  const handleSendReminder = () => {
     if (!activeCycle) return;
     
     // Calculate exact days left
     const eDate = new Date(activeCycle.end_date);
     const today = new Date();
-    // Reset time for accurate day difference
     today.setHours(0, 0, 0, 0);
     eDate.setHours(0, 0, 0, 0);
     
-    // Math.round to avoid timezone decimal issues
     const diffTime = eDate.getTime() - today.getTime();
     const exactDaysLeft = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-    let confirmMsg = `Slack-ə "${exactDaysLeft} gün qalıb" kimi xatırlatma mesajı göndərmək istədiyinizə əminsiniz?`;
-    if (exactDaysLeft === 0) confirmMsg = "Slack-ə 'Bugün son gündür' xatırlatması göndərmək istədiyinizə əminsiniz?";
-    if (exactDaysLeft < 0) confirmMsg = `Slack-ə "Vaxt ${Math.abs(exactDaysLeft)} gün keçib" xatırlatması göndərmək istədiyinizə əminsiniz?`;
+    let confirmMsg = `Slack komandasına "Bitməsinə ${exactDaysLeft} gün qalıb" deyə xatırlatma göndəriləcək.`;
+    if (exactDaysLeft === 0) confirmMsg = "Slack komandasına 'Bugün son gündür' xatırlatması göndəriləcək.";
+    if (exactDaysLeft < 0) confirmMsg = `Slack komandasına "Vaxt ${Math.abs(exactDaysLeft)} gün gecikib" xatırlatması göndəriləcək.`;
 
-    if (!window.confirm(confirmMsg)) return;
+    setReminderDaysLeft(exactDaysLeft);
+    setReminderMessage(confirmMsg);
+    setShowReminderModal(true);
+  };
 
+  const confirmSendReminder = async () => {
+    setLoading(true);
     try {
-      await supabase.rpc('send_slack_reminder', { days_left: exactDaysLeft });
-      alert("Xatırlatma mesajı Slack-ə göndərildi! 🚀");
+      await supabase.rpc('send_slack_reminder', { days_left: reminderDaysLeft });
+      setShowReminderModal(false);
+      // Optional: you can show a success toast here if you want, but silent is fine too
     } catch (err) {
       console.error('Error sending reminder:', err);
       alert("Mesaj göndərilərkən xəta baş verdi.");
     }
+    setLoading(false);
   };
 
   const fetchData = async () => {
@@ -679,6 +688,35 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}      {/* Custom Reminder Modal */}
+      {showReminderModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#F9F6F0] border border-[#E4DACB] rounded-[24px] p-8 max-w-[400px] w-full shadow-2xl flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-[#FBEEE6] text-[#D97757] rounded-full flex items-center justify-center text-3xl mb-4 border border-[#F3E3DB]">
+              🔔
+            </div>
+            <h2 className="text-2xl font-bold text-[#2B2621] mb-2">Təsdiqləyin</h2>
+            <p className="text-[#6B6255] text-[15px] mb-8 leading-relaxed">
+              {reminderMessage}
+            </p>
+            
+            <div className="flex w-full gap-3">
+              <button 
+                onClick={() => setShowReminderModal(false)}
+                className="flex-1 px-4 py-3.5 text-sm font-bold text-[#6B6255] bg-white border border-[#E4DACB] rounded-xl hover:bg-[#F1E9D9] transition-colors"
+              >
+                Ləğv et
+              </button>
+              <button 
+                onClick={confirmSendReminder}
+                disabled={loading}
+                className="flex-1 px-4 py-3.5 text-sm font-bold text-white bg-[#D97757] rounded-xl hover:bg-[#E8A07D] transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loading ? 'Göndərilir...' : 'Göndər'}
+              </button>
+            </div>
           </div>
         </div>
       )}
