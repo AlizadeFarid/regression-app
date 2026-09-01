@@ -19,6 +19,51 @@ function App() {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
+  // Admin and Cycle states
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showNewCycleModal, setShowNewCycleModal] = useState(false);
+  const [newCycleStart, setNewCycleStart] = useState('');
+  const [newCycleEnd, setNewCycleEnd] = useState('');
+
+  useEffect(() => {
+    // Check URL for secret token
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('auth_token');
+    
+    if (token === 'abb_qa_lead_2026') {
+      localStorage.setItem('regression_admin_access', 'granted');
+      // Clean up URL without reloading
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setIsAdmin(true);
+    } else if (localStorage.getItem('regression_admin_access') === 'granted') {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  const handleStartNewCycle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCycleStart || !newCycleEnd) return;
+    
+    setLoading(true);
+    try {
+      // The Supabase trigger will automatically handle setting is_active=false on old cycles,
+      // clone tasks, and fire the webhook.
+      await supabase.from('regression_cycles').insert({
+        start_date: newCycleStart,
+        end_date: newCycleEnd,
+        is_active: true
+      });
+      
+      setShowNewCycleModal(false);
+      setNewCycleStart('');
+      setNewCycleEnd('');
+      await fetchData();
+    } catch (err) {
+      console.error('Error starting new cycle:', err);
+    }
+    setLoading(false);
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -220,6 +265,14 @@ function App() {
             </div>
             
             <div className="flex gap-3 items-center">
+              {isAdmin && (
+                <button 
+                  onClick={() => setShowNewCycleModal(true)}
+                  className="bg-[#D97757] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#E8A07D] transition-colors shadow-sm"
+                >
+                  + New Cycle
+                </button>
+              )}
               {activeCycle ? (
                 <>
                   <div className="flex items-center gap-3 bg-[#F1E9D9] border border-[#E4DACB] rounded-xl px-4 py-2.5">
@@ -442,6 +495,57 @@ function App() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Modal for New Cycle */}
+      {showNewCycleModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#F9F6F0] border border-[#E4DACB] rounded-[24px] p-8 max-w-[400px] w-full shadow-2xl">
+            <h2 className="text-2xl font-bold text-[#2B2621] mb-2">Start New Regression</h2>
+            <p className="text-sm text-[#8A8171] mb-6">This will archive the current cycle and clone all default tasks for the QA team. Notifications will be sent automatically.</p>
+            
+            <form onSubmit={handleStartNewCycle} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-bold text-[#4A3F35] uppercase tracking-wide">Start Date</label>
+                <input 
+                  type="date" 
+                  required
+                  className="bg-white border border-[#E4DACB] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#D97757] text-[#2B2621]"
+                  value={newCycleStart}
+                  onChange={(e) => setNewCycleStart(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-bold text-[#4A3F35] uppercase tracking-wide">End Date</label>
+                <input 
+                  type="date" 
+                  required
+                  className="bg-white border border-[#E4DACB] rounded-xl px-4 py-3 text-sm outline-none focus:border-[#D97757] text-[#2B2621]"
+                  value={newCycleEnd}
+                  onChange={(e) => setNewCycleEnd(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#E4DACB]/50">
+                <button 
+                  type="button" 
+                  onClick={() => setShowNewCycleModal(false)}
+                  className="flex-1 px-4 py-3 text-sm font-bold text-[#6B6255] bg-white border border-[#E4DACB] rounded-xl hover:bg-[#F1E9D9] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={loading || !newCycleStart || !newCycleEnd}
+                  className="flex-1 px-4 py-3 text-sm font-bold text-white bg-[#1F8F5D] rounded-xl hover:bg-[#18754C] transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Starting...' : 'Start Cycle'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
