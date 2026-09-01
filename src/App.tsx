@@ -373,7 +373,8 @@ function App() {
                       {overallProgress}%
                     </div>
                     <div className="w-px h-4 bg-[#E4DACB] mx-1"></div>
-                    <div className="text-sm font-bold text-[#6B6255]">
+                    <div className="text-sm font-bold text-[#6B6255] flex items-center gap-2 animate-pulse-scale">
+                      <div className="w-2 h-2 rounded-full bg-[#1F8F5D] shadow-[0_0_8px_rgba(31,143,93,0.6)]"></div>
                       Release - {activeCycle.release_version || 'N/A'}
                     </div>
                   </div>
@@ -382,7 +383,7 @@ function App() {
                     {dateRangeLabel}
                   </div>
                   <div 
-                    className="rounded-xl px-[18px] py-2.5 flex items-center gap-2 border"
+                    className="rounded-xl px-[18px] py-2.5 flex items-center gap-2 border animate-shake-bell hover:animate-none origin-bottom cursor-default"
                     style={{ backgroundColor: daysLeftBg, borderColor: daysLeftBorder }}
                   >
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: daysLeftDot }}></span>
