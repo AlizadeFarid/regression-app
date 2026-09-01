@@ -18,6 +18,10 @@ function App() {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  
+  // Task Editing states
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTaskTitle, setEditTaskTitle] = useState('');
 
   // Admin and Cycle states
   const [isAdmin, setIsAdmin] = useState(false);
@@ -160,10 +164,35 @@ function App() {
       status: 'Not Started'
     };
 
-    await supabase.from('cycle_tasks').insert([newTask]);
-    setNewTaskTitle('');
-    setIsAddingTask(false);
-    fetchData();
+    try {
+      await supabase.from('cycle_tasks').insert(newTask);
+      setNewTaskTitle('');
+      setIsAddingTask(false);
+      fetchData(); // reload
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveEditTask = async (taskId: string) => {
+    if (!editTaskTitle.trim()) return;
+    try {
+      await supabase.from('cycle_tasks').update({ task_name: editTaskTitle.trim() }).eq('id', taskId);
+      setEditingTaskId(null);
+      setEditTaskTitle('');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await supabase.from('cycle_tasks').delete().eq('id', taskId);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const [isAddingBug, setIsAddingBug] = useState(false);
@@ -391,8 +420,15 @@ function App() {
               &larr;
             </div>
             <div>
-              <div className="text-xl font-bold text-[#2B2621]">{selectedMember.name}</div>
-              <div className="text-[13px] text-[#8A8171]">
+              <div className="flex items-center gap-3">
+                <div className="text-xl font-bold text-[#2B2621]">{selectedMember.name}</div>
+                {selectedMember.team_name && (
+                  <div className="text-[13px] font-bold text-[#D97757] bg-[#FBEEE6] px-3 py-1 rounded-full border border-[#F3E3DB]">
+                    {selectedMember.team_name}
+                  </div>
+                )}
+              </div>
+              <div className="text-[13px] text-[#8A8171] mt-1">
                 {selectedMember.progress}% completed &middot; {selectedMember.bugs.length} bugs found
               </div>
             </div>
@@ -403,17 +439,51 @@ function App() {
               <div className="text-sm font-bold text-[#2B2621] mb-3.5">Checklist</div>
               <div className="overflow-y-auto flex flex-col gap-2 pr-1 custom-scrollbar pb-2">
                 {selectedMember.checklist.map(c => (
-                  <label key={c.id} className="flex items-center justify-between gap-3 bg-[#F1E9D9] border border-[#E4DACB] rounded-lg px-3.5 py-2.5 shrink-0 cursor-pointer hover:bg-[#EAE0CB] transition-colors">
-                    <span className={"text-sm transition-colors " + (c.status === 'Done' ? 'text-[#8A8171] line-through' : 'text-[#4A3F35]')}>
-                      {c.task_name}
-                    </span>
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-[#D97757] border-[#E4DACB] rounded focus:ring-[#D97757] cursor-pointer"
-                      checked={c.status === 'Done'}
-                      onChange={() => handleToggleTaskStatus(c.id, c.status)}
-                    />
-                  </label>
+                  <div key={c.id} className="group flex items-center justify-between gap-3 bg-[#F1E9D9] border border-[#E4DACB] rounded-lg px-3.5 py-2.5 shrink-0 hover:bg-[#EAE0CB] transition-colors">
+                    {editingTaskId === c.id ? (
+                      <div className="flex-1 flex items-center gap-2">
+                        <input 
+                          autoFocus
+                          type="text" 
+                          className="flex-1 bg-white border border-[#E4DACB] rounded px-2 py-1 text-sm outline-none focus:border-[#D97757]"
+                          value={editTaskTitle}
+                          onChange={(e) => setEditTaskTitle(e.target.value)}
+                        />
+                        <button onClick={() => handleSaveEditTask(c.id)} className="text-xs font-bold text-white bg-[#1F8F5D] px-2 py-1 rounded hover:bg-[#18754C]">Save</button>
+                        <button onClick={() => setEditingTaskId(null)} className="text-xs text-[#8A8171] hover:text-[#2B2621]">Cancel</button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className={"text-sm transition-colors cursor-pointer flex-1 " + (c.status === 'Done' ? 'text-[#8A8171] line-through' : 'text-[#4A3F35]')} onClick={() => handleToggleTaskStatus(c.id, c.status)}>
+                          {c.task_name}
+                        </span>
+                        
+                        <div className="flex items-center gap-3">
+                          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">
+                            <button 
+                              onClick={() => { setEditingTaskId(c.id); setEditTaskTitle(c.task_name); }} 
+                              className="text-[11px] font-bold text-[#8A8171] hover:text-[#D97757] uppercase tracking-wide"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => { if(confirm('Delete this task?')) handleDeleteTask(c.id); }} 
+                              className="text-[11px] font-bold text-[#8A8171] hover:text-[#C23B32] uppercase tracking-wide"
+                            >
+                              Del
+                            </button>
+                          </div>
+                          
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 text-[#D97757] border-[#E4DACB] rounded focus:ring-[#D97757] cursor-pointer"
+                            checked={c.status === 'Done'}
+                            onChange={() => handleToggleTaskStatus(c.id, c.status)}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 ))}
                 
                 {isAddingTask ? (
