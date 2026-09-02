@@ -442,11 +442,6 @@ function App() {
                           {m.name}
                         </div>
                       </div>
-                      {!m.jira_execution_ready && (
-                        <div className="bg-[#FBE3DF] border border-[#F2B8AE] text-[#C23B32] text-[10px] uppercase font-bold px-1.5 py-0.5 rounded w-fit tracking-wide shadow-sm">
-                          Execution açılmayıb
-                        </div>
-                      )}
                       <span className="text-[15px] text-[#9C9280] whitespace-nowrap">
                         Tasks: <span className="text-[#2B2621] font-bold">{doneCount}/{m.checklist.length}</span>
                         <span className="mx-2 text-[#E4DACB]">&bull;</span>
@@ -460,20 +455,13 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="flex-1 flex flex-col gap-1.5 border-t border-[#E4DACB] pt-2.5">
-                    {m.bugs.slice(0, 4).map(bug => (
-                      <div key={bug.id} className="flex items-center justify-between gap-2 bg-[#F1E9D9] rounded-md px-3 py-1.5 shrink-0">
-                        <span className="text-[13px] text-[#4A3F35] overflow-hidden text-ellipsis whitespace-nowrap">
-                          {bug.title}
-                        </span>
-                        <span 
-                          className="text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-                          style={{ backgroundColor: getStatusColors(bug.status).bg, color: getStatusColors(bug.status).text }}
-                        >
-                          {bug.status}
-                        </span>
+                  <div className="flex-1 flex flex-col items-center justify-center border-t border-[#E4DACB] pt-4 mt-2">
+                    {!m.jira_execution_ready && (
+                      <div className="bg-[#FBE3DF]/50 border border-[#F2B8AE] text-[#C23B32] px-4 py-3 rounded-xl flex items-center gap-3 w-full justify-center shadow-sm">
+                        <span className="text-xl">⚠️</span>
+                        <span className="text-[13px] font-bold uppercase tracking-wide">Jira Execution Açılmayıb</span>
                       </div>
-                    ))}
+                    )}
                   </div>
 
                   <div className="flex justify-end shrink-0 mt-1">
