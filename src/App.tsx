@@ -249,7 +249,10 @@ function App() {
     }
   };
 
-  const toggleJiraExecution = async (memberId: string, currentStatus: boolean | undefined) => {
+  const toggleJiraExecution = async (memberId: string, memberName: string, currentStatus: boolean | undefined) => {
+    const actionText = currentStatus ? "Açılmayıb kimi işarələmək" : "Açıldı kimi təsdiqləmək";
+    if (!window.confirm(`${memberName} üçün Jira Execution-u ${actionText} istədiyinizə əminsiniz?`)) return;
+
     try {
       await supabase.from('qa_members').update({ jira_execution_ready: !currentStatus }).eq('id', memberId);
       fetchData();
@@ -496,7 +499,7 @@ function App() {
             
             {isAdmin && (
               <button
-                onClick={() => toggleJiraExecution(selectedMember.id, selectedMember.jira_execution_ready)}
+                onClick={() => toggleJiraExecution(selectedMember.id, selectedMember.name, selectedMember.jira_execution_ready)}
                 className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm ${
                   selectedMember.jira_execution_ready 
                   ? 'bg-white border border-[#E4DACB] text-[#6B6255] hover:bg-[#F1E9D9]' 
