@@ -12,6 +12,7 @@ export interface QAMember {
   bugs: CycleBug[];
   progress: number;
   lastActive?: Date;
+  jira_execution_ready?: boolean;
 }
 
 export interface CycleTask {

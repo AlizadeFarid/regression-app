@@ -172,7 +172,8 @@ function App() {
           checklist: memberTasks,
           bugs: memberBugs,
           progress,
-          lastActive
+          lastActive,
+          jira_execution_ready: m.jira_execution_ready
         };
       });
 
@@ -242,6 +243,15 @@ function App() {
   const handleDeleteTask = async (taskId: string) => {
     try {
       await supabase.from('cycle_tasks').delete().eq('id', taskId);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleJiraExecution = async (memberId: string, currentStatus: boolean | undefined) => {
+    try {
+      await supabase.from('qa_members').update({ jira_execution_ready: !currentStatus }).eq('id', memberId);
       fetchData();
     } catch (err) {
       console.error(err);
@@ -432,6 +442,11 @@ function App() {
                           {m.name}
                         </div>
                       </div>
+                      {!m.jira_execution_ready && (
+                        <div className="bg-[#FBE3DF] border border-[#F2B8AE] text-[#C23B32] text-[10px] uppercase font-bold px-1.5 py-0.5 rounded w-fit tracking-wide shadow-sm">
+                          Execution açılmayıb
+                        </div>
+                      )}
                       <span className="text-[15px] text-[#9C9280] whitespace-nowrap">
                         Tasks: <span className="text-[#2B2621] font-bold">{doneCount}/{m.checklist.length}</span>
                         <span className="mx-2 text-[#E4DACB]">&bull;</span>
@@ -475,19 +490,34 @@ function App() {
 
       {view === 'detail' && selectedMember && (
         <div className="flex-1 flex flex-col px-11 py-9 gap-5 min-h-0">
-          <div className="flex items-center gap-4">
-            <div 
-              onClick={() => setView('dashboard')}
-              className="cursor-pointer w-10 h-10 rounded-xl bg-white border border-[#E4DACB] flex items-center justify-center text-lg text-[#6B6255] hover:border-[#D97757] transition-colors"
-            >
-              &larr;
-            </div>
-            <div>
-              <div className="text-xl font-bold text-[#2B2621]">{selectedMember.name}</div>
-              <div className="text-[13px] text-[#8A8171] mt-1">
-                {selectedMember.progress}% completed &middot; {selectedMember.bugs.length} bugs found
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div 
+                onClick={() => setView('dashboard')}
+                className="cursor-pointer w-10 h-10 rounded-xl bg-white border border-[#E4DACB] flex items-center justify-center text-lg text-[#6B6255] hover:border-[#D97757] transition-colors"
+              >
+                &larr;
+              </div>
+              <div>
+                <div className="text-xl font-bold text-[#2B2621]">{selectedMember.name}</div>
+                <div className="text-[13px] text-[#8A8171] mt-1">
+                  {selectedMember.progress}% completed &middot; {selectedMember.bugs.length} bugs found
+                </div>
               </div>
             </div>
+            
+            {isAdmin && (
+              <button
+                onClick={() => toggleJiraExecution(selectedMember.id, selectedMember.jira_execution_ready)}
+                className={`text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm ${
+                  selectedMember.jira_execution_ready 
+                  ? 'bg-white border border-[#E4DACB] text-[#6B6255] hover:bg-[#F1E9D9]' 
+                  : 'bg-[#C23B32] text-white hover:bg-[#A9322A]'
+                }`}
+              >
+                {selectedMember.jira_execution_ready ? 'Execution: Opened ✓' : 'Execution: Açılmayıb (Kliklə)'}
+              </button>
+            )}
           </div>
 
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-5 min-h-0 overflow-hidden pb-4">
