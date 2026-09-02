@@ -250,8 +250,8 @@ function App() {
   };
 
   const toggleJiraExecution = async (memberId: string, memberName: string, currentStatus: boolean | undefined) => {
-    const actionText = currentStatus ? "Açılmayıb kimi işarələmək" : "Açıldı kimi təsdiqləmək";
-    if (!window.confirm(`${memberName} üçün Jira Execution-u ${actionText} istədiyinizə əminsiniz?`)) return;
+    const actionText = currentStatus ? "Pending" : "Opened";
+    if (!window.confirm(`Are you sure you want to mark Jira Executions as ${actionText} for ${memberName}?`)) return;
 
     try {
       await supabase.from('qa_members').update({ jira_execution_ready: !currentStatus }).eq('id', memberId);
@@ -462,7 +462,7 @@ function App() {
                     {!m.jira_execution_ready && (
                       <div className="bg-[#FBE3DF]/50 border border-[#F2B8AE] text-[#C23B32] px-4 py-3 rounded-xl flex items-center gap-3 w-full justify-center shadow-sm">
                         <span className="text-xl">⚠️</span>
-                        <span className="text-[13px] font-bold uppercase tracking-wide">Jira Execution Açılmayıb</span>
+                        <span className="text-[13px] font-bold uppercase tracking-wide">Pending Jira Executions</span>
                       </div>
                     )}
                   </div>
@@ -506,7 +506,7 @@ function App() {
                   : 'bg-[#C23B32] text-white hover:bg-[#A9322A]'
                 }`}
               >
-                {selectedMember.jira_execution_ready ? 'Execution: Opened ✓' : 'Execution: Açılmayıb (Kliklə)'}
+                {selectedMember.jira_execution_ready ? 'Status: Executions Opened ✓' : 'Status: Executions Pending'}
               </button>
             )}
           </div>
