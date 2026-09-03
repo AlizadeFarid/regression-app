@@ -34,6 +34,9 @@ function App() {
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [reminderDaysLeft, setReminderDaysLeft] = useState(0);
   const [reminderMessage, setReminderMessage] = useState('');
+  const [showCustomMsgModal, setShowCustomMsgModal] = useState(false);
+  const [customMsgText, setCustomMsgText] = useState('');
+
   useEffect(() => {
     // Check URL for secret token
     const urlParams = new URLSearchParams(window.location.search);
@@ -104,6 +107,20 @@ function App() {
       // Optional: you can show a success toast here if you want, but silent is fine too
     } catch (err) {
       console.error('Error sending reminder:', err);
+      alert("Mesaj göndərilərkən xəta baş verdi.");
+    }
+    setLoading(false);
+  };
+
+  const confirmSendCustomMessage = async () => {
+    if (!customMsgText.trim()) return;
+    setLoading(true);
+    try {
+      await supabase.rpc('send_custom_slack_message', { custom_message: customMsgText.trim() });
+      setShowCustomMsgModal(false);
+      setCustomMsgText('');
+    } catch (err) {
+      console.error('Error sending custom message:', err);
       alert("Mesaj göndərilərkən xəta baş verdi.");
     }
     setLoading(false);
@@ -362,6 +379,12 @@ function App() {
             <div className="flex gap-3 items-center">
               {isAdmin && (
                 <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setShowCustomMsgModal(true)}
+                    className="bg-white border border-[#E4DACB] text-[#D97757] text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#FBEEE6] transition-colors shadow-sm"
+                  >
+                    ✉️ Message
+                  </button>
                   <button 
                     onClick={handleSendReminder}
                     className="bg-white border border-[#E4DACB] text-[#D97757] text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#FBEEE6] transition-colors shadow-sm"
@@ -735,6 +758,47 @@ function App() {
               <button 
                 onClick={confirmSendReminder}
                 disabled={loading}
+                className="flex-1 px-4 py-3.5 text-sm font-bold text-white bg-[#D97757] rounded-xl hover:bg-[#E8A07D] transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loading ? 'Göndərilir...' : 'Göndər'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Message Modal */}
+      {showCustomMsgModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#F9F6F0] border border-[#E4DACB] rounded-[24px] p-8 max-w-[450px] w-full shadow-2xl flex flex-col text-center">
+            <div className="w-16 h-16 bg-[#FBEEE6] text-[#D97757] rounded-full flex items-center justify-center text-3xl mb-4 border border-[#F3E3DB] mx-auto">
+              ✉️
+            </div>
+            <h2 className="text-2xl font-bold text-[#2B2621] mb-2">Xüsusi Mesaj</h2>
+            <p className="text-[#6B6255] text-[14px] mb-6 leading-relaxed">
+              Slack komandasına göndərmək istədiyiniz mətni daxil edin.
+            </p>
+            
+            <textarea 
+              value={customMsgText}
+              onChange={(e) => setCustomMsgText(e.target.value)}
+              placeholder="Mesajınızı bura yazın..."
+              className="w-full h-32 p-3 bg-white border border-[#E4DACB] rounded-xl text-[14px] focus:outline-none focus:border-[#D97757] resize-none mb-6"
+            />
+            
+            <div className="flex w-full gap-3">
+              <button 
+                onClick={() => {
+                  setShowCustomMsgModal(false);
+                  setCustomMsgText('');
+                }}
+                className="flex-1 px-4 py-3.5 text-sm font-bold text-[#6B6255] bg-white border border-[#E4DACB] rounded-xl hover:bg-[#F1E9D9] transition-colors"
+              >
+                Ləğv et
+              </button>
+              <button 
+                onClick={confirmSendCustomMessage}
+                disabled={loading || !customMsgText.trim()}
                 className="flex-1 px-4 py-3.5 text-sm font-bold text-white bg-[#D97757] rounded-xl hover:bg-[#E8A07D] transition-colors shadow-sm disabled:opacity-50"
               >
                 {loading ? 'Göndərilir...' : 'Göndər'}
