@@ -102,9 +102,9 @@ function App() {
   const confirmSendReminder = async () => {
     setLoading(true);
     try {
-      await supabase.rpc('send_slack_reminder', { days_left: reminderDaysLeft });
+      const { error } = await supabase.rpc('send_slack_reminder', { days_left: reminderDaysLeft });
+      if (error) throw error;
       setShowReminderModal(false);
-      // Optional: you can show a success toast here if you want, but silent is fine too
     } catch (err) {
       console.error('Error sending reminder:', err);
       alert("Mesaj göndərilərkən xəta baş verdi.");
@@ -116,7 +116,8 @@ function App() {
     if (!customMsgText.trim()) return;
     setLoading(true);
     try {
-      await supabase.rpc('send_custom_slack_message', { custom_message: customMsgText.trim() });
+      const { error } = await supabase.rpc('send_custom_slack_message', { custom_message: customMsgText.trim() });
+      if (error) throw error;
       setShowCustomMsgModal(false);
       setCustomMsgText('');
     } catch (err) {
